@@ -28,6 +28,11 @@ spring:
     include: null
   security:
     oauth2:
+      clients:
+        - client-id: web-client
+          client-secret: web-client-secret
+        - client-id: gateway-client
+          client-secret: gateway-client-secret
       resourceserver:
         jwt:
           issuer-uri: "http://localhost:8090/issuer"
@@ -70,7 +75,9 @@ spring:
               predicates:
                 - Path=/api/users/**
               filters:
-                - RewritePath=/api/users/(?<segment>.*), /api/v1/users/$\{segment}
+                - RewritePath=/api/users(?<remaining>/?.*), /api/v1/users${remaining}
+
+
                 - name: CircuitBreaker
                   args:
                     name: usersCircuitBreaker
@@ -81,7 +88,7 @@ spring:
               predicates:
                 - Path=/api/solicitudes/**
               filters:
-                - RewritePath=/api/solicitudes/(?<segment>.*), /$\{segment}
+                - RewritePath=/api/solicitudes(?<remaining>/?.*), /api/v1/solicitudes${remaining}
                 - name: CircuitBreaker
                   args:
                     name: solicitudesCircuitBreaker

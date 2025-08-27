@@ -26,6 +26,7 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.log4j.Log4j2;
 
@@ -78,24 +79,51 @@ public class AuthorizationJwt {
                 .build();
     }
 
-    public ReactiveJwtDecoder jwtDecoder() {
-        try {
-            var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
-            var audienceValidator = new JwtClaimValidator<String>(AZP,
-                    azp -> azp != null && !azp.isEmpty() && azp.equals(clientId));
-            var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
-            var jwtDecoder = NimbusReactiveJwtDecoder
-                    .withIssuerLocation(issuerUri)
-                    .build();
+    // public ReactiveJwtDecoder jwtDecoder() {
+    //     try {
+    //         var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
+    //         var audienceValidator = new JwtClaimValidator<String>(AZP,
+    //                 azp -> azp != null && !azp.isEmpty() && azp.equals(clientId));
+    //         var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
+    //         var jwtDecoder = NimbusReactiveJwtDecoder
+    //                 .withIssuerLocation(issuerUri)
+    //                 .build();
 
-            jwtDecoder.setJwtValidator(tokenValidator);
-            return jwtDecoder;
-        } catch (Exception e) {
-            log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
-            // En caso de error, crear un decoder que no valide nada
-            return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
-        }
+    //         jwtDecoder.setJwtValidator(tokenValidator);
+    //         return jwtDecoder;
+    //     } catch (Exception e) {
+    //         log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
+    //         // En caso de error, crear un decoder que no valide nada
+    //         return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
+    //     }
+    // }
+
+    @Bean
+public ReactiveJwtDecoder jwtDecoder() {
+    try {
+        var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
+
+        // Aceptar múltiples azp
+        var validAzps = Set.of("gateway-client", "web-client");
+        var audienceValidator = new JwtClaimValidator<String>(
+                "azp",
+                azp -> azp != null && validAzps.contains(azp)
+        );
+
+        var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
+
+        var jwtDecoder = NimbusReactiveJwtDecoder
+                .withIssuerLocation(issuerUri)
+                .build();
+
+        jwtDecoder.setJwtValidator(tokenValidator);
+        return jwtDecoder;
+    } catch (Exception e) {
+        log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
+        return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
     }
+}
+
 
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> grantedAuthoritiesExtractor() {
         var jwtConverter = new JwtAuthenticationConverter();
