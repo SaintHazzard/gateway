@@ -41,7 +41,7 @@ subprojects {
         testCompileOnly  "org.projectlombok:lombok:${lombokVersion}"
         testAnnotationProcessor  "org.projectlombok:lombok:${lombokVersion}"
         implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
-        implementation platform("org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}")
+        // implementation platform("org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}")
     }
 
     tasks.withType(Test).configureEach {

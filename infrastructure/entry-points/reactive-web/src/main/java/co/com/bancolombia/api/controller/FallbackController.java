@@ -25,4 +25,25 @@ public class FallbackController {
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body("El servicio de créditos no está disponible en este momento. Por favor, intente más tarde."));
     }
+    
+    @GetMapping("/auth")
+    public Mono<ResponseEntity<String>> authFallback() {
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("El servicio de autenticación no está disponible en este momento. Por favor, intente más tarde."));
+    }
+    
+    @GetMapping("/users")
+    public Mono<ResponseEntity<String>> usersFallback() {
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("El servicio de usuarios no está disponible en este momento. Por favor, intente más tarde."));
+    }
+    
+    @GetMapping("/solicitudes")
+    public Mono<ResponseEntity<String>> solicitudesFallback() {
+        return Mono.just(ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("El servicio de solicitudes no está disponible en este momento. Por favor, intente más tarde."));
+    }
 }

@@ -1,5 +1,20 @@
 server:
   port: 8080
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: TRACE
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway.server.webflux: TRACE
+    reactor.netty: DEBUG
+    org.springframework.security.web.FilterChainProxy: DEBUG
+    org.springframework.web.filter: DEBUG
+    org.springframework.http.server.reactive: DEBUG
+    org.springframework.web.reactive: DEBUG
+    reactor.netty.http.client: DEBUG
+    reactor.netty.http.server: DEBUG
+
 spring:
   application:
     name: "gateway"
@@ -17,37 +32,69 @@ spring:
         jwt:
           issuer-uri: "http://localhost:8090/issuer"
           client-id: "autentication-client"
+
   cloud:
     gateway:
-      routes:
-        - id: autentication-service
-          uri: http://localhost:8090
-          predicates:
-            - Path=/api/autentication/**
-          filters:
-            - RewritePath=/api/autentication/(?<segment>.*), /$\{segment}
-            - name: CircuitBreaker
-              args:
-                name: autenticationCircuitBreaker
-                fallbackUri: forward:/fallback/autentication
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "http://localhost:4200,http://localhost:8080"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+          httpserver:
+            wiretap: true
+          httpclient:
+            wiretap: true
+          routes:
+            - id: auth-service
+              uri: http://localhost:8090
+              predicates:
+                - Path=/auth/**
+              filters:
+                - PreserveHostHeader
+                - name: CircuitBreaker
+                  args:
+                    name: autenticationCircuitBreaker
+                    fallbackUri: forward:/fallback/auth
 
-        - id: solicitudes-service
-          uri: http://localhost:8091
-          predicates:
-            - Path=/api/solicitudes/**
-          filters:
-            - RewritePath=/api/solicitudes/(?<segment>.*), /$\{segment}
-            - name: CircuitBreaker
-              args:
-                name: solicitudesCircuitBreaker
-                fallbackUri: forward:/fallback/solicitudes
+            - id: issuer-service
+              uri: http://localhost:8090
+              predicates:
+                - Path=/issuer/**
+
+            - id: users-api-service
+              uri: http://localhost:8090
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - RewritePath=/api/users/(?<segment>.*), /api/v1/users/$\{segment}
+                - name: CircuitBreaker
+                  args:
+                    name: usersCircuitBreaker
+                    fallbackUri: forward:/fallback/users
+
+            - id: solicitudes-service
+              uri: http://localhost:8091
+              predicates:
+                - Path=/api/solicitudes/**
+              filters:
+                - RewritePath=/api/solicitudes/(?<segment>.*), /$\{segment}
+                - name: CircuitBreaker
+                  args:
+                    name: solicitudesCircuitBreaker
+                    fallbackUri: forward:/fallback/solicitudes
+
 jwt:
   json-exp-roles: "/roles"
+
 management:
   endpoints:
     web:
       exposure:
-        include: "health,prometheus"
+        include: "gateway,health,prometheus"
   endpoint:
     health:
       probes:
@@ -57,6 +104,7 @@ management:
       enabled: true
     ratelimiters:
       enabled: true
+
 resilience4j:
   circuitbreaker:
     configs:
@@ -74,5 +122,6 @@ resilience4j:
         baseConfig: default
       solicitudesCircuitBreaker:
         baseConfig: default
+
 cors:
   allowed-origins: "http://localhost:4200,http://localhost:8080"

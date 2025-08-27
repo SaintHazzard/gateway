@@ -14,17 +14,20 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 public class CorsConfig {
 
     @Bean
-    CorsWebFilter corsWebFilter(@Value("${cors.allowed-origins}") String origins) {
+    public CorsWebFilter corsWebFilter(@Value("${cors.allowed-origins}") String allowed) {
         CorsConfiguration config = new CorsConfiguration();
+        // orígenes permitidos
+        config.setAllowedOrigins(Arrays.stream(allowed.split(",")).map(String::trim).toList());
+        // métodos y headers
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of(origins.split(",")));
-        config.setAllowedMethods(Arrays.asList("POST", "GET", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of(CorsConfiguration.ALL));
-        config.setExposedHeaders(Arrays.asList("X-Request-ID", "Authorization"));
+        // si usas Authorization, expón el header
+        config.setExposedHeaders(List.of("Authorization", "Location"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return new CorsWebFilter(source);
     }
+
 }
