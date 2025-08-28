@@ -91,6 +91,7 @@ spring:
                 - Path=/api/solicitudes/**
               filters:
                 - RewritePath=/api/solicitudes(?<remaining>/?.*), /api/v1/solicitudes${remaining}
+
                 - name: CircuitBreaker
                   args:
                     name: solicitudesCircuitBreaker
