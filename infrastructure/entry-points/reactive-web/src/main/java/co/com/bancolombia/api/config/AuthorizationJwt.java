@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -54,6 +56,32 @@ public class AuthorizationJwt {
         this.mapper = mapper;
     }
 
+    // @Bean
+    // public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
+    //     log.info("Configuring security filter chain with issuer URI: {}", issuerUri);
+
+    //     return http
+    //             .csrf(ServerHttpSecurity.CsrfSpec::disable)
+    //             .cors(cors -> {
+    //             })
+    //             .authorizeExchange(authorize -> authorize
+    //                     .pathMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+    //                     .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll() // Rutas específicas de auth
+    //                     .pathMatchers("/issuer/**").permitAll()
+    //                     .pathMatchers("/fallback/**").permitAll()
+    //                     .pathMatchers("/actuator/**").permitAll()
+    //                     .pathMatchers("/api/gateway/status").permitAll()
+    //                     .anyExchange().authenticated())
+    //             // .sessionManagement(s -> s.s) 
+    //             .oauth2ResourceServer(oauth2 -> oauth2
+    //                 .jwt(jwtSpec -> jwtSpec
+    //                     .jwtDecoder(jwtDecoder())
+    //                     .jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
+    //             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+    //             .build();
+    // }
+
+
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
         log.info("Configuring security filter chain with issuer URI: {}", issuerUri);
@@ -63,19 +91,19 @@ public class AuthorizationJwt {
                 .cors(cors -> {
                 })
                 .authorizeExchange(authorize -> authorize
-                        .pathMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll() // Rutas específicas de auth
+                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll()
                         .pathMatchers("/issuer/**").permitAll()
                         .pathMatchers("/fallback/**").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
                         .pathMatchers("/api/gateway/status").permitAll()
                         .anyExchange().authenticated())
-                // .sessionManagement(s -> s.s) 
                 .oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwtSpec -> jwtSpec
-                        .jwtDecoder(jwtDecoder())
-                        .jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
-                .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+                        .jwt(jwtSpec -> jwtSpec
+                                .jwtDecoder(jwtDecoder())
+                                .jwtAuthenticationConverter(grantedAuthoritiesExtractor())
+                        )
+                )
                 .build();
     }
 
