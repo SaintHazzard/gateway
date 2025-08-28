@@ -59,9 +59,8 @@ spring:
             - id: auth-service
               uri: http://localhost:8090
               predicates:
-                - Path=/auth/**
+                - Path=/api/v1/**
               filters:
-                - PreserveHostHeader
                 - name: CircuitBreaker
                   args:
                     name: autenticationCircuitBreaker

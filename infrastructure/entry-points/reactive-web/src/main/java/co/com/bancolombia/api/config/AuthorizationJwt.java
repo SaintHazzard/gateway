@@ -58,29 +58,60 @@ public class AuthorizationJwt {
 
     // @Bean
     // public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
-    //     log.info("Configuring security filter chain with issuer URI: {}", issuerUri);
+    // log.info("Configuring security filter chain with issuer URI: {}", issuerUri);
 
-    //     return http
-    //             .csrf(ServerHttpSecurity.CsrfSpec::disable)
-    //             .cors(cors -> {
-    //             })
-    //             .authorizeExchange(authorize -> authorize
-    //                     .pathMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-    //                     .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll() // Rutas específicas de auth
-    //                     .pathMatchers("/issuer/**").permitAll()
-    //                     .pathMatchers("/fallback/**").permitAll()
-    //                     .pathMatchers("/actuator/**").permitAll()
-    //                     .pathMatchers("/api/gateway/status").permitAll()
-    //                     .anyExchange().authenticated())
-    //             // .sessionManagement(s -> s.s) 
-    //             .oauth2ResourceServer(oauth2 -> oauth2
-    //                 .jwt(jwtSpec -> jwtSpec
-    //                     .jwtDecoder(jwtDecoder())
-    //                     .jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
-    //             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
-    //             .build();
+    // return http
+    // .csrf(ServerHttpSecurity.CsrfSpec::disable)
+    // .cors(cors -> {
+    // })
+    // .authorizeExchange(authorize -> authorize
+    // .pathMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+    // .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll() // Rutas
+    // específicas de auth
+    // .pathMatchers("/issuer/**").permitAll()
+    // .pathMatchers("/fallback/**").permitAll()
+    // .pathMatchers("/actuator/**").permitAll()
+    // .pathMatchers("/api/gateway/status").permitAll()
+    // .anyExchange().authenticated())
+    // // .sessionManagement(s -> s.s)
+    // .oauth2ResourceServer(oauth2 -> oauth2
+    // .jwt(jwtSpec -> jwtSpec
+    // .jwtDecoder(jwtDecoder())
+    // .jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
+    // .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
+    // .build();
     // }
 
+    // Método para configurar las rutas públicas
+    private void configurePublicRoutes(ServerHttpSecurity.AuthorizeExchangeSpec authorizeExchange) {
+        authorizeExchange
+                .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll()
+                .pathMatchers("/issuer/**").permitAll()
+                .pathMatchers("/fallback/**").permitAll()
+                .pathMatchers("/actuator/**").permitAll()
+                .pathMatchers("/api/gateway/status").permitAll()
+                .pathMatchers("/api/v1/login", "/api/v1/login/**", "/api/v1/validate").permitAll() // Explícitamente permitimos los endpoints de login
+                .pathMatchers("/api/v1/**").permitAll();
+    }
+
+    // Método para configurar las rutas de usuarios
+    private void configureUserRoutes(ServerHttpSecurity.AuthorizeExchangeSpec authorizeExchange) {
+        authorizeExchange
+                .pathMatchers("/api/users/**").hasAnyRole(RoleEnum.ADMIN.name(), RoleEnum.ASESOR.name(), RoleEnum.CLIENTE.name());
+    }
+
+    // Método para configurar las rutas de solicitudes
+    private void configureSolicitudesRoutes(ServerHttpSecurity.AuthorizeExchangeSpec authorizeExchange) {
+        authorizeExchange
+                .pathMatchers("/api/solicitudes/**").hasAnyRole(RoleEnum.ADMIN.name(), RoleEnum.ASESOR.name(),RoleEnum.CLIENTE.name());
+    }
+
+    // Método para configurar las rutas de administrador
+    private void configureAdminRoutes(ServerHttpSecurity.AuthorizeExchangeSpec authorizeExchange) {
+        authorizeExchange
+                .pathMatchers("/api/admin/**").hasAnyRole(RoleEnum.ADMIN.name());
+    }
 
     @Bean
     public SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
@@ -90,68 +121,67 @@ public class AuthorizationJwt {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> {
                 })
-                .authorizeExchange(authorize -> authorize
-                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers("/auth/**", "/auth/login", "/auth/token").permitAll()
-                        .pathMatchers("/issuer/**").permitAll()
-                        .pathMatchers("/fallback/**").permitAll()
-                        .pathMatchers("/actuator/**").permitAll()
-                        .pathMatchers("/api/gateway/status").permitAll()
-                        .anyExchange().authenticated())
+                .authorizeExchange(authorizeExchange -> {
+                    // Configurar todas las rutas en secuencia
+                    configurePublicRoutes(authorizeExchange);
+                    configureUserRoutes(authorizeExchange);
+                    configureSolicitudesRoutes(authorizeExchange);
+                    configureAdminRoutes(authorizeExchange);
+                    // Cualquier otra ruta requiere autenticación
+                    authorizeExchange.anyExchange().authenticated();
+                })
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwtSpec -> jwtSpec
                                 .jwtDecoder(jwtDecoder())
-                                .jwtAuthenticationConverter(grantedAuthoritiesExtractor())
-                        )
-                )
+                                .jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
                 .build();
     }
 
     // public ReactiveJwtDecoder jwtDecoder() {
-    //     try {
-    //         var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
-    //         var audienceValidator = new JwtClaimValidator<String>(AZP,
-    //                 azp -> azp != null && !azp.isEmpty() && azp.equals(clientId));
-    //         var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
-    //         var jwtDecoder = NimbusReactiveJwtDecoder
-    //                 .withIssuerLocation(issuerUri)
-    //                 .build();
+    // try {
+    // var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
+    // var audienceValidator = new JwtClaimValidator<String>(AZP,
+    // azp -> azp != null && !azp.isEmpty() && azp.equals(clientId));
+    // var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator,
+    // audienceValidator);
+    // var jwtDecoder = NimbusReactiveJwtDecoder
+    // .withIssuerLocation(issuerUri)
+    // .build();
 
-    //         jwtDecoder.setJwtValidator(tokenValidator);
-    //         return jwtDecoder;
-    //     } catch (Exception e) {
-    //         log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
-    //         // En caso de error, crear un decoder que no valide nada
-    //         return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
-    //     }
+    // jwtDecoder.setJwtValidator(tokenValidator);
+    // return jwtDecoder;
+    // } catch (Exception e) {
+    // log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
+    // // En caso de error, crear un decoder que no valide nada
+    // return token -> Mono.error(new RuntimeException("JWT validation temporarily
+    // disabled"));
+    // }
     // }
 
     @Bean
-public ReactiveJwtDecoder jwtDecoder() {
-    try {
-        var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
+    public ReactiveJwtDecoder jwtDecoder() {
+        try {
+            var defaultValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
 
-        // Aceptar múltiples azp
-        var validAzps = Set.of("gateway-client", "web-client");
-        var audienceValidator = new JwtClaimValidator<String>(
-                "azp",
-                azp -> azp != null && validAzps.contains(azp)
-        );
+            // Aceptar múltiples azp
+            var validAzps = Set.of("gateway-client", "web-client");
+            var audienceValidator = new JwtClaimValidator<String>(
+                    "azp",
+                    azp -> azp != null && validAzps.contains(azp));
 
-        var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
+            var tokenValidator = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
 
-        var jwtDecoder = NimbusReactiveJwtDecoder
-                .withIssuerLocation(issuerUri)
-                .build();
+            var jwtDecoder = NimbusReactiveJwtDecoder
+                    .withIssuerLocation(issuerUri)
+                    .build();
 
-        jwtDecoder.setJwtValidator(tokenValidator);
-        return jwtDecoder;
-    } catch (Exception e) {
-        log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
-        return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
+            jwtDecoder.setJwtValidator(tokenValidator);
+            return jwtDecoder;
+        } catch (Exception e) {
+            log.error("Error configuring JWT decoder: {}", e.getMessage(), e);
+            return token -> Mono.error(new RuntimeException("JWT validation temporarily disabled"));
+        }
     }
-}
-
 
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> grantedAuthoritiesExtractor() {
         var jwtConverter = new JwtAuthenticationConverter();
