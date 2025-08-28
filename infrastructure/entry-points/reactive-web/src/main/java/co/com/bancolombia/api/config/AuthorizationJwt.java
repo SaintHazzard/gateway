@@ -91,14 +91,17 @@ public class AuthorizationJwt {
                 .pathMatchers("/fallback/**").permitAll()
                 .pathMatchers("/actuator/**").permitAll()
                 .pathMatchers("/api/gateway/status").permitAll()
-                .pathMatchers("/api/v1/login", "/api/v1/login/**", "/api/v1/validate").permitAll() // Explícitamente permitimos los endpoints de login
+                .pathMatchers("/api/v1/login", "/api/v1/login/**", "/api/v1/validate").permitAll()
+                .pathMatchers(HttpMethod.GET, "/api/users").permitAll()
                 .pathMatchers("/api/v1/**").permitAll();
     }
 
     // Método para configurar las rutas de usuarios
     private void configureUserRoutes(ServerHttpSecurity.AuthorizeExchangeSpec authorizeExchange) {
         authorizeExchange
-                .pathMatchers("/api/users/**").hasAnyRole(RoleEnum.ADMIN.name(), RoleEnum.ASESOR.name(), RoleEnum.CLIENTE.name());
+                // Todas las rutas de usuarios están protegidas, pero nuestro filtro personalizado
+                // UserRouteAuthorizationFilter se encargará de permitir acceso a la ruta de email
+                .pathMatchers("/api/users/**").hasAnyRole(RoleEnum.ADMIN.name(), RoleEnum.ASESOR.name());
     }
 
     // Método para configurar las rutas de solicitudes
